@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import logging
 import os
 from typing import Any, Literal
 from uuid import uuid4
@@ -48,6 +49,8 @@ from backend.mentor_response.chat_service import (
     load_chat_module_config,
 )
 
+
+logger = logging.getLogger(__name__)
 
 REGISTRY_PATH = WORKSPACE_ROOT / "configs" / "chat_modules.yaml"
 FINAL_DEMO_SUMMARY_PATH = TESTING_DIR / "mentor_final_v3_demo_summary.json"
@@ -595,11 +598,14 @@ def get_admin_active_version(module_id: str, level: str) -> dict[str, Any]:
 
 @app.post("/api/chat", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
-    default_module_id, default_level = get_default_module(REGISTRY_PATH)
-    module_id = request.module_id or default_module_id
-    level = request.level or default_level
     try:
+        logger.info("Starting /api/chat module resolution.")
+        default_module_id, default_level = get_default_module(REGISTRY_PATH)
+        module_id = request.module_id or default_module_id
+        level = request.level or default_level
+        logger.info("Loading /api/chat module configuration for module_id=%s level=%s.", module_id, level)
         module_config = load_chat_module_config(module_id, level, REGISTRY_PATH, WORKSPACE_ROOT)
+        logger.info("Processing /api/chat request for module_id=%s level=%s.", module_config.module_id, module_config.level)
         result = answer_chat_turn(
             message=request.message,
             module_config=module_config,
@@ -609,6 +615,7 @@ def chat(request: ChatRequest) -> ChatResponse:
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
     except Exception as exc:
+        logger.exception("Unhandled error while processing /api/chat.")
         raise HTTPException(status_code=500, detail="The AI Mentor could not answer right now. Please try again.") from exc
 
     return ChatResponse(
