@@ -1,0 +1,65 @@
+# Secrets and local environment
+.env
+.env.*
+*.key
+
+# Python caches and virtual environments
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+
+# Runtime databases
+data/ai_mentor.db
+*.db
+*.db-shm
+*.db-wal
+*.db-journal
+*.sqlite3
+*.sqlite3-shm
+*.sqlite3-wal
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# Uploaded documents
+data/uploads/
+
+# Original/private course materials
+knowledge_base/
+/*.pdf
+/*.docx
+/*.pptx
+/*.xlsx
+
+# Generated knowledge and preparation artifacts
+data/prepared/
+prepared_knowledge/
+
+# Vector stores
+data/admin_chroma/
+vectorstores/
+
+# Logs and temporary files
+*.log
+tmp/
+temp/
+
+# Generated evaluation outputs
+testing/*_results*.json
+testing/*_results*.csv
+testing/*_retrieval_debug*.json
+testing/*_Results.xlsx
+testing/*_Test_Results*.xlsx
+testing/DMV_AI_Mentor_*_Test_Set.xlsx
+testing/human_review_results.json
+testing/*_report*.md
+testing/mentor_final_v3_demo_summary.json
+testing/mentor_final_v3_manual_review_shortlist.json
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

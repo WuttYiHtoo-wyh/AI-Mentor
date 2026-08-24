@@ -1,0 +1,9 @@
+default_module_id: PDDS-DMV
+default_level: Basic
+modules:
+  - module_id: PDDS-DMV
+    level: Basic
+    module_name: Data Modelling and Visualisation
+    retrieval_config_path: configs/retrieval_experiment3.yaml
+    response_model: gpt-4o-mini
+    max_output_tokens: 500

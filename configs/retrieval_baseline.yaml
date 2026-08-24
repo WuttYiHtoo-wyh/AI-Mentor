@@ -1,0 +1,11 @@
+prepared_chunks_path: prepared_knowledge/dmv_basic/prepared_chunks.jsonl
+chroma_path: vectorstores/baseline_chroma
+collection_name: mentor_baseline_pdds_dmv_basic
+embedding_model: text-embedding-3-small
+module_id: PDDS-DMV
+level: Basic
+test_set_path: testing/retrieval_test_set.json
+results_json_path: testing/retrieval_baseline_results.json
+results_csv_path: testing/retrieval_baseline_results.csv
+batch_size: 64
+

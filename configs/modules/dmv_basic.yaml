@@ -1,0 +1,48 @@
+module_id: PDDS-DMV
+module_name: Data Modelling and Visualisation
+level: Basic
+output_dir: prepared_knowledge/dmv_basic
+sources:
+  - document_id: dmv_basic_project_brief
+    document_type: project_brief
+    knowledge_role: OFFICIAL_REQUIREMENT
+    source_path: knowledge_base/brief/DMV-Project_Brief_Basic-v1-formatted.pdf
+  - document_id: iu1_1
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU1_1
+    source_path: knowledge_base/learning_materials/IU1_1.pdf
+  - document_id: iu1_2
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU1_2
+    source_path: knowledge_base/learning_materials/IU1_2.pdf
+  - document_id: iu1_3
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU1_3
+    source_path: knowledge_base/learning_materials/IU1_3.pdf
+  - document_id: iu2_1
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU2_1
+    source_path: knowledge_base/learning_materials/IU2_1.pdf
+  - document_id: iu2_2
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU2_2
+    source_path: knowledge_base/learning_materials/IU2_2.pdf
+  - document_id: iu3_1
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU3_1
+    source_path: knowledge_base/learning_materials/IU3_1.pdf
+  - document_id: iu4_1
+    document_type: instructional_unit
+    knowledge_role: LEARNING_MATERIAL
+    instructional_unit: IU4_1
+    source_path: knowledge_base/learning_materials/IU4_1.pdf
+  - document_id: dmv_learner_guide
+    document_type: learner_guide
+    knowledge_role: MODULE_GUIDANCE
+    source_path: knowledge_base/module_guide/Learner_Guide_PDDS_DMV_v4.pdf

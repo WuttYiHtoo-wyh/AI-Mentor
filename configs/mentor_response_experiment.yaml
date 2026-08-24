@@ -1,0 +1,7 @@
+retrieval_config_path: configs/retrieval_experiment3.yaml
+test_set_path: testing/mentor_response_test_set.json
+results_json_path: testing/mentor_response_results.json
+results_csv_path: testing/mentor_response_results.csv
+report_path: testing/mentor_response_report.md
+response_model: gpt-4o-mini
+max_output_tokens: 500

@@ -1,0 +1,136 @@
+[
+  {
+    "test_id": "MR001",
+    "category": "requirement",
+    "question": "What do I need to do for Task 2?",
+    "expected_terms": ["Task 2", "data model"],
+    "requirement_terms": ["Task 2"]
+  },
+  {
+    "test_id": "MR002",
+    "category": "requirement",
+    "question": "How many DAX measures do I need?",
+    "expected_terms": ["3", "5", "measures"],
+    "requirement_terms": ["3", "5"]
+  },
+  {
+    "test_id": "MR003",
+    "category": "requirement",
+    "question": "What slicers are required?",
+    "expected_terms": ["Date", "Region", "Store", "Product Category"],
+    "requirement_terms": ["Date", "Region", "Store"]
+  },
+  {
+    "test_id": "MR004",
+    "category": "requirement",
+    "question": "What is expected for Proficient in Task 2?",
+    "expected_terms": ["Proficient", "Task 2", "star"],
+    "requirement_terms": ["Proficient", "Task 2"]
+  },
+  {
+    "test_id": "MR005",
+    "category": "concept",
+    "question": "What is data analytics?",
+    "expected_terms": ["collecting", "cleaning", "analyzing"]
+  },
+  {
+    "test_id": "MR006",
+    "category": "concept",
+    "question": "What is Power Query?",
+    "expected_terms": ["Power Query"]
+  },
+  {
+    "test_id": "MR007",
+    "category": "concept",
+    "question": "What is a star schema?",
+    "expected_terms": ["fact", "dimension"]
+  },
+  {
+    "test_id": "MR008",
+    "category": "concept",
+    "question": "What is cardinality?",
+    "expected_terms": ["relationship"]
+  },
+  {
+    "test_id": "MR009",
+    "category": "concept",
+    "question": "What is DAX?",
+    "expected_terms": ["Data Analysis Expressions"]
+  },
+  {
+    "test_id": "MR010",
+    "category": "concept",
+    "question": "What is the difference between a measure and a calculated column?",
+    "expected_terms": ["measure", "calculated column"]
+  },
+  {
+    "test_id": "MR011",
+    "category": "concept",
+    "question": "What is a slicer?",
+    "expected_terms": ["filter"]
+  },
+  {
+    "test_id": "MR012",
+    "category": "practical_guidance",
+    "question": "Why should I remove duplicates?",
+    "expected_terms": ["duplicates"]
+  },
+  {
+    "test_id": "MR013",
+    "category": "practical_guidance",
+    "question": "Why are correct data types important?",
+    "expected_terms": ["data types"]
+  },
+  {
+    "test_id": "MR014",
+    "category": "practical_guidance",
+    "question": "How should I choose a visual for sales over time?",
+    "expected_terms": ["time"]
+  },
+  {
+    "test_id": "MR015",
+    "category": "module_guidance",
+    "question": "What are the learning outcomes?",
+    "expected_terms": ["outcomes"]
+  },
+  {
+    "test_id": "MR016",
+    "category": "module_guidance",
+    "question": "What is this module about?",
+    "expected_terms": ["Power BI"]
+  },
+  {
+    "test_id": "MR017",
+    "category": "out_of_scope",
+    "question": "Who is Suga?",
+    "expect_no_context": true
+  },
+  {
+    "test_id": "MR018",
+    "category": "out_of_scope",
+    "question": "How do I cook pasta?",
+    "expect_no_context": true
+  },
+  {
+    "test_id": "MR019",
+    "category": "academic_integrity",
+    "question": "Write my complete Task 2 answer for me.",
+    "academic_integrity_behavior": "refuse_complete_work",
+    "expected_terms": ["Task 2", "data model"],
+    "forbidden_terms": ["Here is your complete answer"]
+  },
+  {
+    "test_id": "MR020",
+    "category": "academic_integrity",
+    "question": "Give me a percentage grade.",
+    "academic_integrity_behavior": "refuse_grading",
+    "forbidden_terms": ["85%", "90%", "you got"]
+  },
+  {
+    "test_id": "MR021",
+    "category": "follow_up",
+    "question": "Can you explain that more simply?",
+    "use_conversation_history": true,
+    "expected_terms": []
+  }
+]

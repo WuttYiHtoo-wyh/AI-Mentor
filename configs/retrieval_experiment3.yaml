@@ -1,0 +1,74 @@
+prepared_chunks_path: prepared_knowledge/dmv_basic/prepared_chunks.jsonl
+chroma_path: vectorstores/baseline_chroma
+collection_name: mentor_baseline_pdds_dmv_basic
+embedding_model: text-embedding-3-small
+module_id: PDDS-DMV
+level: Basic
+test_set_path: testing/retrieval_test_set.json
+expectations_path: testing/retrieval_expectations.json
+baseline_results_path: testing/retrieval_baseline_results.json
+experiment2_results_path: testing/retrieval_experiment2_results.json
+results_json_path: testing/retrieval_experiment3_results.json
+results_csv_path: testing/retrieval_experiment3_results.csv
+report_path: testing/retrieval_experiment3_report.md
+final_top_k: 5
+selected_threshold: 0.70
+candidate_pool_configs:
+  - general_top_k: 12
+    preferred_role_top_k: 3
+  - general_top_k: 10
+    preferred_role_top_k: 5
+  - general_top_k: 15
+    preferred_role_top_k: 3
+  - general_top_k: 10
+    preferred_role_top_k: 10
+intent_patterns:
+  REQUIREMENT:
+    - "what do i need to do"
+    - "do i need"
+    - "need to"
+    - "how many"
+    - "required"
+    - "requirement"
+    - "submit"
+    - "deliverable"
+    - "marks"
+    - "rubric"
+    - "proficient"
+    - "assessment"
+  LEARNING:
+    - "what is"
+    - "explain"
+    - "why"
+    - "how does"
+    - "how do"
+    - "difference between"
+  MODULE_GUIDANCE:
+    - "learning outcomes"
+    - "module structure"
+    - "learning resources"
+    - "what will i learn"
+    - "module purpose"
+reranking:
+  role_bonus:
+    REQUIREMENT:
+      OFFICIAL_REQUIREMENT: 0.12
+      LEARNING_MATERIAL: 0.0
+      MODULE_GUIDANCE: -0.04
+    LEARNING:
+      LEARNING_MATERIAL: 0.08
+      OFFICIAL_REQUIREMENT: -0.02
+      MODULE_GUIDANCE: -0.04
+    MODULE_GUIDANCE:
+      MODULE_GUIDANCE: 0.12
+      LEARNING_MATERIAL: -0.04
+      OFFICIAL_REQUIREMENT: -0.03
+    GENERAL:
+      OFFICIAL_REQUIREMENT: 0.0
+      LEARNING_MATERIAL: 0.0
+      MODULE_GUIDANCE: 0.0
+  rubric_bonus: 0.08
+  task_reference_bonus: 0.10
+  deliverable_bonus: 0.10
+  metadata_overlap_bonus_per_token: 0.015
+  metadata_overlap_bonus_cap: 0.09

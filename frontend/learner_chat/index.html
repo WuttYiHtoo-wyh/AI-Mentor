@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Mentor</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>AI Mentor</h1>
+          <p>Ask about your module, project requirements, or concepts you are learning.</p>
+        </div>
+        <nav class="top-nav" aria-label="Primary">
+          <button type="button" class="nav-tab active" data-view="chat">Learner Chat</button>
+          <button type="button" class="nav-tab" data-view="capabilities">AI Mentor Capabilities</button>
+          <button type="button" class="nav-tab" data-view="evaluation">Evaluation</button>
+          <button type="button" class="nav-tab" data-view="admin">Lecturer Workspace</button>
+        </nav>
+      </header>
+
+      <section id="chatView" class="view active-view">
+        <section id="conversation" class="conversation" aria-live="polite">
+          <div id="emptyState" class="empty-state">
+            <h2>Ask me about your DMV module, project requirements, or concepts you are learning.</h2>
+            <div class="example-grid" aria-label="Example questions">
+              <button type="button" class="example-question">What do I need to do for Task 2?</button>
+              <button type="button" class="example-question">Explain star schema.</button>
+              <button type="button" class="example-question">What is the difference between a measure and a calculated column?</button>
+              <button type="button" class="example-question">What are the learning outcomes?</button>
+            </div>
+          </div>
+        </section>
+
+        <div id="error" class="error" role="alert" hidden></div>
+
+        <form id="chatForm" class="composer">
+          <label class="sr-only" for="messageInput">Ask a question about this module</label>
+          <textarea
+            id="messageInput"
+            rows="1"
+            maxlength="8000"
+            placeholder="Ask a question about this module..."
+            autocomplete="off"
+          ></textarea>
+          <button id="sendButton" type="submit" disabled>Send</button>
+        </form>
+      </section>
+
+      <section id="evaluationView" class="view evaluation-view" hidden>
+        <div id="evaluationRoot" class="evaluation-root">
+          <div class="panel"><p>Loading evaluation results...</p></div>
+        </div>
+      </section>
+
+      <section id="capabilitiesView" class="view capabilities-view" hidden>
+        <div id="capabilitiesRoot" class="capabilities-root"></div>
+      </section>
+
+      <section id="adminView" class="view admin-view" hidden>
+        <div id="adminRoot" class="admin-root">
+          <div class="panel"><p>Loading Lecturer Workspace...</p></div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>

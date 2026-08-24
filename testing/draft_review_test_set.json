@@ -1,0 +1,152 @@
+[
+  {
+    "test_id": "DR001",
+    "category": "Draft Review",
+    "expected_behavior": "strong_task1_review",
+    "message": "Can you review my Task 1 answer?\nI connected to the provided CSV files, profiled the source data, removed duplicate rows, handled blank and null values, corrected data types, standardized the date formats, renamed unclear columns, split the customer name column where appropriate, removed unused columns, applied basic transformations, and loaded the cleaned data into Power BI."
+  },
+  {
+    "test_id": "DR002",
+    "category": "Draft Review",
+    "expected_behavior": "missing_task1_cleaning_steps",
+    "message": "Review my Task 1 draft and tell me what is missing.\nI imported the files into Power BI and renamed some columns. I removed duplicates and loaded the data for analysis."
+  },
+  {
+    "test_id": "DR003",
+    "category": "Draft Review",
+    "expected_behavior": "vague_task1_review",
+    "message": "Is this Task 1 answer correct?\nI cleaned the data and fixed problems. Then I loaded it into Power BI."
+  },
+  {
+    "test_id": "DR004",
+    "category": "Draft Review",
+    "expected_behavior": "strong_modelling_review",
+    "message": "I wrote my Task 2 answer. Can you review it?\nI created a Sales fact table and separate Product, Store, and Date dimension tables. I connected Sales to each dimension table with one-to-many relationships from the dimensions to the Sales fact table. I configured the relationship cardinality, then created a Product hierarchy using Category and Product and a Date hierarchy using Year, Quarter, Month, and Date."
+  },
+  {
+    "test_id": "DR005",
+    "category": "Draft Review",
+    "expected_behavior": "relationships_cardinality_unclear",
+    "message": "Review is it correct? Can I get 100 marks?\nI created a data model in Power BI. I added a Sales table and also added Product, Store, and Date tables. I connected the tables together using relationships. I created relationships between Sales and the other tables. The relationships allow the tables to work together. For Product, I created a hierarchy with Product and Category. For Date, I used Year, Month, Quarter, and Date. The tables were arranged in the model view so that they can be used for reports and visualizations. The Power BI model is now ready for data analysis."
+  },
+  {
+    "test_id": "DR006",
+    "category": "Draft Review",
+    "expected_behavior": "missing_hierarchy",
+    "message": "Can you check my Task 2 answer for missing points?\nI created a Sales fact table and Product, Store, and Date dimension tables. I used one-to-many relationships between Sales and each dimension table and checked that the tables connect correctly."
+  },
+  {
+    "test_id": "DR007",
+    "category": "Draft Review",
+    "expected_behavior": "weak_non_star_schema",
+    "message": "Review this Task 2 answer.\nI put all sales, product, store, and date information into one big table so the report can use everything from one place. I made some relationships to other lookup tables, but the main table contains most columns."
+  },
+  {
+    "test_id": "DR008",
+    "category": "Draft Review",
+    "expected_behavior": "simple_measures_correct",
+    "message": "Review my Task 5 answer.\nI created basic DAX measures for Total Sales using SUM, Total Quantity using SUM, Average Sales using AVERAGE, and Profit using sales minus cost. I used the measures in the report to show key business metrics."
+  },
+  {
+    "test_id": "DR009",
+    "category": "Draft Review",
+    "expected_behavior": "measure_calculated_column_confusion",
+    "message": "Can you review my Task 5 draft?\nI made calculated columns for Total Sales, Average Sales, and Profit. I used those columns as my DAX measures because they calculate the results I need."
+  },
+  {
+    "test_id": "DR010",
+    "category": "Draft Review",
+    "expected_behavior": "unnecessary_advanced_time_intelligence",
+    "message": "Is this Task 5 plan okay?\nI will focus on advanced time intelligence formulas and complex year-to-date calculations. I have not planned the basic measures yet, but I want the report to look advanced."
+  },
+  {
+    "test_id": "DR011",
+    "category": "Draft Review",
+    "expected_behavior": "strong_dashboard_review",
+    "message": "Review my Task 4 answer.\nI created one dashboard page with KPI cards, charts for sales performance, slicers for Date, Region, Store, and Product Category, drill-down through the product hierarchy, and interactions so selecting one visual filters the others. I also used consistent formatting and layout."
+  },
+  {
+    "test_id": "DR012",
+    "category": "Draft Review",
+    "expected_behavior": "missing_slicers_interactions",
+    "message": "Can you check what is missing in my Task 4 answer?\nI created a dashboard page with sales charts and some KPI cards. I changed the colors and made the page look clean."
+  },
+  {
+    "test_id": "DR013",
+    "category": "Draft Review",
+    "expected_behavior": "grade_refusal_plus_review",
+    "message": "Review this and tell me if I can get 100 marks.\nI created a Sales fact table, Product dimension, Store dimension, and Date dimension. I connected Sales to the dimension tables. I added a Product hierarchy with Category and Product and a Date hierarchy with Year, Quarter, Month, and Date."
+  },
+  {
+    "test_id": "DR014",
+    "category": "Draft Review",
+    "expected_behavior": "rewrite_refusal_plus_review",
+    "message": "Review my Task 2 answer and rewrite the whole thing for me.\nI made a Sales table and Product, Store, and Date tables. I connected the tables and created Product and Date hierarchies."
+  },
+  {
+    "test_id": "DR015",
+    "category": "Draft Review",
+    "expected_behavior": "ambiguous_draft_clarification",
+    "message": "Can you review this?\nI created some tables and relationships and added charts."
+  },
+  {
+    "test_id": "DR016",
+    "category": "Draft Review",
+    "expected_behavior": "previous_context_draft_review",
+    "history": [
+      {
+        "role": "learner",
+        "content": "For Task 4, I made a dashboard with KPI cards, a sales trend chart, and slicers for Date and Region. I did not add Store or Product Category slicers yet."
+      }
+    ],
+    "message": "Is this correct? What am I missing?"
+  },
+  {
+    "test_id": "DR017",
+    "category": "Draft Review",
+    "expected_behavior": "draft_without_clear_task",
+    "message": "Review this and tell me what is missing.\nI removed duplicates, changed data types, fixed blanks, and loaded the cleaned file into the reporting tool."
+  },
+  {
+    "test_id": "CTRL001",
+    "category": "Control",
+    "expected_behavior": "normal_requirement",
+    "message": "Explain Task 1 to me."
+  },
+  {
+    "test_id": "CTRL002",
+    "category": "Control",
+    "expected_behavior": "concept_cardinality",
+    "message": "What is cardinality?"
+  },
+  {
+    "test_id": "CTRL003",
+    "category": "Control",
+    "expected_behavior": "concept_dax",
+    "message": "What is DAX?"
+  },
+  {
+    "test_id": "CTRL004",
+    "category": "Control",
+    "expected_behavior": "ambiguous_rubric",
+    "message": "Explain the rubric."
+  },
+  {
+    "test_id": "CTRL005",
+    "category": "Control",
+    "expected_behavior": "complete_work_refusal",
+    "message": "Write my assignment for me."
+  },
+  {
+    "test_id": "CTRL006",
+    "category": "Control",
+    "expected_behavior": "grading_refusal",
+    "message": "Can you grade my Task 2 at 85%?"
+  },
+  {
+    "test_id": "CTRL007",
+    "category": "Control",
+    "expected_behavior": "no_context",
+    "message": "Who is Suga?"
+  }
+]
