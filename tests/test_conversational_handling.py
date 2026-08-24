@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from backend.mentor_response.chat_service import ChatModuleConfig, answer_chat_turn
+from backend.mentor_response.generator import build_source_references
 from backend.mentor_response.prompts import NO_CONTEXT_RESPONSE
 
 
@@ -54,6 +55,52 @@ class ConversationalHandlingTests(unittest.TestCase):
                     self.assertEqual([], result["sources"])
                     self.assertFalse(result["no_context"])
             retrieve.assert_not_called()
+
+
+    def test_source_references_use_learner_facing_labels(self) -> None:
+        evidence = [
+            {
+                "document_id": "3d37edb6-3c85-4c90-8085-5d1b2b473278",
+                "document_type": "guide",
+                "knowledge_role": "MODULE_GUIDANCE",
+                "source_file": "/data/uploads/DMV/version/Learner_Guide.pdf",
+                "page_start": 1,
+                "page_end": 3,
+            },
+            {
+                "document_id": "7f493ead-0c9d-4d78-bf91-e503fcfa0378",
+                "document_type": "project_brief",
+                "knowledge_role": "OFFICIAL_REQUIREMENT",
+                "page_start": 4,
+                "page_end": 4,
+            },
+            {
+                "document_id": "69b144b1-03e8-4f99-9ca7-3424398d3bda",
+                "document_type": "instructional_unit",
+                "knowledge_role": "LEARNING_MATERIAL",
+                "instructional_unit": "IU2_2",
+                "page_start": 5,
+                "page_end": 6,
+            },
+        ]
+
+        self.assertEqual(
+            ["Learner Guide, pages 1-3", "Project Brief, page 4", "IU2_2, pages 5-6"],
+            build_source_references(evidence),
+        )
+
+    def test_source_references_do_not_fall_back_to_document_uuid(self) -> None:
+        references = build_source_references([
+            {
+                "document_id": "3d37edb6-3c85-4c90-8085-5d1b2b473278",
+                "document_type": "",
+                "knowledge_role": "",
+                "page_start": 1,
+                "page_end": 1,
+            }
+        ])
+
+        self.assertEqual(["Approved module material, page 1"], references)
 
     def test_module_questions_still_use_retrieval(self) -> None:
         retrieval = {

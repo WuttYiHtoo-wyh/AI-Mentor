@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import re
 from typing import Any
 
@@ -564,16 +565,25 @@ def _append_sources(answer: str, references: list[str]) -> str:
 
 
 def _source_label(row: dict[str, Any]) -> str:
-    document_type = str(row.get("document_type", ""))
-    if document_type == "project_brief":
-        return "Project Brief"
-    if document_type == "learner_guide":
-        return "Learner Guide"
-    instructional_unit = row.get("instructional_unit")
+    instructional_unit = str(row.get("instructional_unit") or "").strip()
     if instructional_unit:
-        return str(instructional_unit)
-    document_id = str(row.get("document_id", ""))
-    return document_id or "Approved module material"
+        return instructional_unit
+
+    document_type = _normalized_label_token(row.get("document_type"))
+    knowledge_role = _normalized_label_token(row.get("knowledge_role"))
+    source_file = _normalized_label_token(Path(str(row.get("source_file") or "")).stem)
+
+    if document_type in {"projectbrief", "brief", "assignmentbrief"} or knowledge_role == "officialrequirement":
+        return "Project Brief"
+    if document_type in {"learnerguide", "moduleguide", "guide"} or knowledge_role == "moduleguidance" or "learnerguide" in source_file:
+        return "Learner Guide"
+    if knowledge_role == "learningmaterial":
+        return "Learning Material"
+    return "Approved module material"
+
+
+def _normalized_label_token(value: Any) -> str:
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
 
 
 def _page_label(start: Any, end: Any) -> str:
