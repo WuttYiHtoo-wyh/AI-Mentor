@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import os
 from typing import Any, Literal
 from uuid import uuid4
 
@@ -28,6 +29,18 @@ from backend.admin.repository import DuplicateRecordError, NotFoundError, Reposi
 from backend.admin.review_service import AdminReviewService
 from backend.admin.service import AdminPersistenceService, ValidationError, to_dict
 from backend.admin.sqlite_repository import SQLiteAdminRepository
+from backend.api.runtime_paths import (
+    ADMIN_CHROMA_ROOT,
+    ADMIN_DB_PATH,
+    ADMIN_PREPARED_ROOT,
+    ADMIN_PUBLISHED_CONFIG_ROOT,
+    ADMIN_UPLOAD_ROOT,
+    HUMAN_REVIEW_PATH,
+    STATIC_DIR,
+    TESTING_DIR,
+    WORKSPACE_ROOT,
+    display_path,
+)
 from backend.admin.upload_service import AdminUploadService
 from backend.mentor_response.chat_service import (
     answer_chat_turn,
@@ -36,18 +49,24 @@ from backend.mentor_response.chat_service import (
 )
 
 
-WORKSPACE_ROOT = Path(__file__).resolve().parents[2]
 REGISTRY_PATH = WORKSPACE_ROOT / "configs" / "chat_modules.yaml"
-STATIC_DIR = WORKSPACE_ROOT / "frontend" / "learner_chat"
-TESTING_DIR = WORKSPACE_ROOT / "testing"
 FINAL_DEMO_SUMMARY_PATH = TESTING_DIR / "mentor_final_v3_demo_summary.json"
 FINAL_RESULTS_PATH = TESTING_DIR / "mentor_final_v3_results.json"
 FINAL_DEBUG_PATH = TESTING_DIR / "mentor_final_v3_retrieval_debug.json"
 FINAL_SHORTLIST_PATH = TESTING_DIR / "mentor_final_v3_manual_review_shortlist.json"
-HUMAN_REVIEW_PATH = TESTING_DIR / "human_review_results.json"
-ADMIN_DB_PATH = WORKSPACE_ROOT / "data" / "ai_mentor.db"
-ADMIN_UPLOAD_ROOT = WORKSPACE_ROOT / "data" / "uploads"
-ADMIN_PREPARED_ROOT = WORKSPACE_ROOT / "data" / "prepared"
+
+
+def _cors_origins() -> list[str]:
+    origins = [
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8001",
+        "http://localhost:8000",
+        "http://localhost:8001",
+    ]
+    configured = os.environ.get("FRONTEND_ORIGIN", "").strip()
+    if configured:
+        origins.extend(origin.strip() for origin in configured.split(",") if origin.strip())
+    return list(dict.fromkeys(origins))
 
 
 class ChatHistoryTurn(BaseModel):
@@ -158,10 +177,15 @@ class AdminPublishRequest(BaseModel):
 app = FastAPI(title="AI Mentor Learner Chat", version="0.1.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["GET", "POST"],
+    allow_origins=_cors_origins(),
+    allow_methods=["GET", "POST", "PATCH", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+@app.get("/health")
+def root_health() -> dict[str, str]:
+    return {"status": "ok"}
 
 
 @app.get("/api/health")
@@ -180,9 +204,9 @@ def admin_metadata() -> dict[str, Any]:
             "preparation_job": sorted(PREPARATION_JOB_STATUSES),
             "publish_job": sorted(PUBLISH_JOB_STATUSES),
         },
-        "database": str(ADMIN_DB_PATH.relative_to(WORKSPACE_ROOT)),
+        "database": display_path(ADMIN_DB_PATH),
         "uploads": {
-            "root": str(ADMIN_UPLOAD_ROOT.relative_to(WORKSPACE_ROOT)),
+            "root": display_path(ADMIN_UPLOAD_ROOT),
             "max_bytes": MAX_UPLOAD_BYTES,
             "allowed_extensions": sorted(SUPPORTED_UPLOAD_EXTENSIONS),
             "preparation_supported_extensions": sorted(SUPPORTED_PREPARATION_EXTENSIONS),
@@ -680,6 +704,7 @@ def save_human_review(test_id: str, record: HumanReviewRecord) -> dict[str, Any]
         raise HTTPException(status_code=400, detail="Path test_id and review test_id must match.")
     reviews = _read_reviews()
     reviews[test_id] = record.model_dump()
+    HUMAN_REVIEW_PATH.parent.mkdir(parents=True, exist_ok=True)
     HUMAN_REVIEW_PATH.write_text(json.dumps(reviews, indent=2, ensure_ascii=False), encoding="utf-8")
     final = _read_json(FINAL_RESULTS_PATH, {})
     return {
@@ -734,8 +759,8 @@ def _admin_publish_service() -> AdminPublishService:
     return AdminPublishService(
         repository,
         workspace_root=WORKSPACE_ROOT,
-        chroma_root=WORKSPACE_ROOT / "data" / "admin_chroma",
-        config_root=WORKSPACE_ROOT / "data" / "published_configs",
+        chroma_root=ADMIN_CHROMA_ROOT,
+        config_root=ADMIN_PUBLISHED_CONFIG_ROOT,
     )
 
 

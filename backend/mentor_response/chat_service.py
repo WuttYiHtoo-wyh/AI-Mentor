@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from backend.admin.sqlite_repository import SQLiteAdminRepository
+from backend.api.runtime_paths import ADMIN_DB_PATH
 
 from .academic_integrity import pre_retrieval_academic_response
 from .conversational import pre_retrieval_conversational_response
@@ -64,7 +65,7 @@ def get_default_module(registry_path: Path) -> tuple[str, str]:
 
 
 def _load_admin_published_module_config(module_id: str, level: str, workspace_root: Path) -> ChatModuleConfig | None:
-    db_path = workspace_root / "data" / "ai_mentor.db"
+    db_path = ADMIN_DB_PATH
     if not db_path.exists():
         return None
     repository = SQLiteAdminRepository(db_path)

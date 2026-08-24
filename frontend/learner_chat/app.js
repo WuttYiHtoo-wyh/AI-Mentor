@@ -13,6 +13,12 @@ const adminView = document.getElementById("adminView");
 const adminRoot = document.getElementById("adminRoot");
 const navTabs = document.querySelectorAll(".nav-tab");
 
+const API_BASE = String(window.AI_MENTOR_API_BASE || "").replace(/\/+$/, "");
+
+function apiUrl(path) {
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${API_BASE}${normalizedPath}`;
+}
 const state = {
   conversationId: crypto.randomUUID(),
   loading: false,
@@ -202,7 +208,7 @@ async function sendMessage(message) {
   setLoading(true);
 
   try {
-    const response = await fetch("/api/chat", {
+    const response = await fetch(apiUrl("/api/chat"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -358,8 +364,8 @@ async function loadEvaluation() {
   evaluationRoot.innerHTML = `<div class="panel"><p>Loading evaluation results...</p></div>`;
   try {
     const [summaryResponse, testsResponse] = await Promise.all([
-      fetch("/api/evaluation/summary"),
-      fetch("/api/evaluation/tests"),
+      fetch(apiUrl("/api/evaluation/summary")),
+      fetch(apiUrl("/api/evaluation/tests")),
     ]);
     if (!summaryResponse.ok || !testsResponse.ok) {
       throw new Error("Could not load evaluation artifacts.");
@@ -578,7 +584,7 @@ function shortText(text, length) {
 }
 
 async function openEvaluationDetail(testId) {
-  const response = await fetch(`/api/evaluation/tests/${encodeURIComponent(testId)}`);
+  const response = await fetch(apiUrl(`/api/evaluation/tests/${encodeURIComponent(testId)}`));
   if (!response.ok) {
     showError("Could not load evaluation detail.");
     return;
@@ -702,7 +708,7 @@ async function saveHumanReview(testId) {
     reviewed_at: reviewedAt,
     comments: modal.querySelector("#reviewComments").value.trim(),
   };
-  const response = await fetch(`/api/evaluation/human-reviews/${encodeURIComponent(testId)}`, {
+  const response = await fetch(apiUrl(`/api/evaluation/human-reviews/${encodeURIComponent(testId)}`), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
@@ -741,7 +747,7 @@ async function loadAdmin() {
 }
 
 async function adminFetch(url, options = {}) {
-  const response = await fetch(url, options);
+  const response = await fetch(apiUrl(url), options);
   const text = await response.text();
   const data = text ? JSON.parse(text) : {};
   if (!response.ok) {
