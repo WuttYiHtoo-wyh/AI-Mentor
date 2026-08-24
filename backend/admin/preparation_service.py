@@ -119,10 +119,7 @@ def _build_module_config(module, module_version, documents: list[DocumentMetadat
     sources = []
     for doc in documents:
         path = Path(doc.file_path)
-        try:
-            source_path = str(path.resolve().relative_to(workspace_root.resolve()))
-        except ValueError:
-            source_path = str(path.resolve())
+        source_path = _config_path_value(path, workspace_root)
         source = {
             "document_id": doc.id,
             "document_type": doc.document_type,
@@ -136,9 +133,18 @@ def _build_module_config(module, module_version, documents: list[DocumentMetadat
         "module_id": module.module_code,
         "module_name": module.name,
         "level": module_version.level,
-        "output_dir": str(output_dir.resolve().relative_to(workspace_root.resolve())),
+        "output_dir": _config_path_value(output_dir, workspace_root),
         "sources": sources,
     }
+
+
+def _config_path_value(path: Path, workspace_root: Path) -> str:
+    resolved_path = path.resolve()
+    resolved_workspace = workspace_root.resolve()
+    try:
+        return str(resolved_path.relative_to(resolved_workspace))
+    except ValueError:
+        return str(resolved_path)
 
 
 def _extension_for_document(document: DocumentMetadata) -> str:

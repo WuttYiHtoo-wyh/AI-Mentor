@@ -83,6 +83,31 @@ class AdminPhase2Tests(unittest.TestCase):
         refreshed = self.persistence.get_module_version(version.id)
         self.assertIn(refreshed.status, {"PREPARED", "NEEDS_REVIEW"})
 
+    def test_prepare_version_supports_prepared_root_outside_workspace(self) -> None:
+        external_data = tempfile.TemporaryDirectory()
+        self.addCleanup(external_data.cleanup)
+        preparation = AdminPreparationService(
+            self.repository,
+            workspace_root=self.workspace,
+            prepared_root=Path(external_data.name) / "prepared",
+        )
+        version = self._create_version("EXT-DATA", "External Data Module")
+        self.uploads.save_document_upload(
+            version_id=version.id,
+            original_filename="brief.pdf",
+            content=_pdf_bytes("External Data Brief", ["Task 1: Prepare Data", "You are required to:", "Import the data.", "Clean the data."]),
+            document_type="project_brief",
+            knowledge_role="OFFICIAL_REQUIREMENT",
+        )
+
+        job = preparation.prepare_version(version_id=version.id, created_by="lecturer")
+
+        self.assertIn(job.status, {"COMPLETED", "COMPLETED_WITH_WARNINGS"})
+        self.assertTrue(Path(job.output_path).is_relative_to(Path(external_data.name)))
+        self.assertTrue(Path(job.output_path, "prepared_chunks.jsonl").exists())
+        config = (Path(job.output_path) / "module_config.yaml").read_text(encoding="utf-8")
+        self.assertIn(str(Path(external_data.name).resolve()), config)
+
     def test_unsupported_preparation_format_is_not_silently_chunked(self) -> None:
         version = self._create_version("MOD-A", "Module A")
         document = self.uploads.save_document_upload(
@@ -142,4 +167,3 @@ def _pdf_bytes(title: str, lines: list[str]) -> bytes:
 
 if __name__ == "__main__":
     unittest.main()
-
