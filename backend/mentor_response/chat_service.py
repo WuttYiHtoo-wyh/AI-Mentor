@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -9,6 +10,8 @@ import yaml
 
 from backend.admin.sqlite_repository import SQLiteAdminRepository
 from backend.api.runtime_paths import ADMIN_DB_PATH
+from backend.retrieval_experiment.config import load_retrieval_config
+from backend.retrieval_experiment.vector_store import open_collection
 
 from .academic_integrity import pre_retrieval_academic_response
 from .conversational import pre_retrieval_conversational_response
@@ -26,6 +29,14 @@ from .retrieval import retrieve_experiment3_evidence
 from .structural_reference import normalize_structural_references
 
 
+logger = logging.getLogger(__name__)
+
+KNOWLEDGE_UNAVAILABLE_ANSWER = (
+    "AI Mentor knowledge is not available for this module yet. Please ask your lecturer or administrator "
+    "to publish the approved module materials."
+)
+
+
 @dataclass(frozen=True)
 class ChatModuleConfig:
     module_id: str
@@ -34,6 +45,7 @@ class ChatModuleConfig:
     retrieval_config_path: Path
     response_model: str
     max_output_tokens: int
+    knowledge_available: bool = True
 
 
 def load_chat_module_config(
@@ -43,6 +55,37 @@ def load_chat_module_config(
     workspace_root: Path,
 ) -> ChatModuleConfig:
     registry = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+    static_config = _load_static_module_config(module_id, level, registry, workspace_root)
+    if static_config:
+        if _retrieval_collection_exists(static_config, workspace_root):
+            logger.info("Static Chroma collection found for module_id=%s level=%s.", module_id, level)
+            return static_config
+        logger.warning("Static Chroma collection missing for module_id=%s level=%s.", module_id, level)
+        logger.info("Admin-published fallback attempted for module_id=%s level=%s.", module_id, level)
+        admin_config = _load_admin_published_module_config(module_id, level, workspace_root)
+        if admin_config and _retrieval_collection_exists(admin_config, workspace_root):
+            logger.info("Admin-published Chroma collection selected for module_id=%s level=%s.", module_id, level)
+            return admin_config
+        logger.warning("No available Chroma collection found for module_id=%s level=%s.", module_id, level)
+        return _mark_knowledge_unavailable(static_config)
+
+    logger.info("Admin-published fallback attempted for module_id=%s level=%s.", module_id, level)
+    admin_config = _load_admin_published_module_config(module_id, level, workspace_root)
+    if admin_config:
+        if _retrieval_collection_exists(admin_config, workspace_root):
+            logger.info("Admin-published Chroma collection selected for module_id=%s level=%s.", module_id, level)
+            return admin_config
+        logger.warning("No available Chroma collection found for module_id=%s level=%s.", module_id, level)
+        return _mark_knowledge_unavailable(admin_config)
+    raise ValueError(f"No chat module configuration found for module_id={module_id!r}, level={level!r}")
+
+
+def get_default_module(registry_path: Path) -> tuple[str, str]:
+    registry = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
+    return registry["default_module_id"], registry["default_level"]
+
+
+def _load_static_module_config(module_id: str, level: str, registry: dict[str, Any], workspace_root: Path) -> ChatModuleConfig | None:
     for module in registry.get("modules", []):
         if module.get("module_id") == module_id and module.get("level") == level:
             return ChatModuleConfig(
@@ -53,20 +96,48 @@ def load_chat_module_config(
                 response_model=module["response_model"],
                 max_output_tokens=int(module.get("max_output_tokens", 500)),
             )
-    admin_config = _load_admin_published_module_config(module_id, level, workspace_root)
-    if admin_config:
-        return admin_config
-    raise ValueError(f"No chat module configuration found for module_id={module_id!r}, level={level!r}")
+    return None
 
 
-def get_default_module(registry_path: Path) -> tuple[str, str]:
-    registry = yaml.safe_load(registry_path.read_text(encoding="utf-8"))
-    return registry["default_module_id"], registry["default_level"]
+def _retrieval_collection_exists(module_config: ChatModuleConfig, workspace_root: Path) -> bool:
+    try:
+        retrieval_config = load_retrieval_config(module_config.retrieval_config_path, workspace_root)
+    except Exception:
+        logger.exception("Retrieval configuration could not be loaded for module_id=%s level=%s.", module_config.module_id, module_config.level)
+        return False
+    if not retrieval_config.chroma_path.exists():
+        return False
+    try:
+        open_collection(retrieval_config.chroma_path, retrieval_config.collection_name)
+    except Exception:
+        return False
+    return True
+
+
+def _mark_knowledge_unavailable(module_config: ChatModuleConfig) -> ChatModuleConfig:
+    return ChatModuleConfig(
+        module_id=module_config.module_id,
+        level=module_config.level,
+        module_name=module_config.module_name,
+        retrieval_config_path=module_config.retrieval_config_path,
+        response_model=module_config.response_model,
+        max_output_tokens=module_config.max_output_tokens,
+        knowledge_available=False,
+    )
+
+
+def _admin_db_path(workspace_root: Path) -> Path | None:
+    workspace_db = workspace_root / "data" / "ai_mentor.db"
+    if workspace_db.exists():
+        return workspace_db
+    if ADMIN_DB_PATH.exists():
+        return ADMIN_DB_PATH
+    return None
 
 
 def _load_admin_published_module_config(module_id: str, level: str, workspace_root: Path) -> ChatModuleConfig | None:
-    db_path = ADMIN_DB_PATH
-    if not db_path.exists():
+    db_path = _admin_db_path(workspace_root)
+    if not db_path:
         return None
     repository = SQLiteAdminRepository(db_path)
     repository.initialize()
@@ -125,6 +196,7 @@ def answer_chat_turn(
             "no_context": False,
         }
 
+
     if _needs_rubric_clarification(normalized_message):
         answer = "Which task or assessment area would you like me to explain the rubric for?"
         return {
@@ -153,6 +225,9 @@ def answer_chat_turn(
                 "detected_behavior": response["detected_behavior"],
                 "detected_task_or_topic": response["detected_task_or_topic"],
             }
+
+        if not module_config.knowledge_available:
+            return _knowledge_unavailable_response(module_config, bool(recent_history), "DRAFT_REVIEW")
         retrieval_query = build_draft_review_retrieval_query(draft_review)
         retrieval = retrieve_experiment3_evidence(
             learner_question=retrieval_query,
@@ -180,6 +255,9 @@ def answer_chat_turn(
             "detected_behavior": response["detected_behavior"],
             "detected_task_or_topic": response["detected_task_or_topic"],
         }
+
+    if not module_config.knowledge_available:
+        return _knowledge_unavailable_response(module_config, bool(recent_history), "KNOWLEDGE_UNAVAILABLE")
 
     contextual_question = _retrieval_question(normalized_message, recent_history)
     retrieval_query = build_response_retrieval_query(contextual_question)
@@ -238,6 +316,7 @@ def debug_retrieve_chat_turn(
         }
 
     draft_review = detect_draft_review(normalized_message, recent_history)
+
     if _needs_rubric_clarification(normalized_message):
         return {
             "question": clean_message,
@@ -265,6 +344,9 @@ def debug_retrieve_chat_turn(
             "detected_task_or_topic": draft_review.task_reference or draft_review.topic_hint,
         }
     if draft_review:
+
+        if not module_config.knowledge_available:
+            return _knowledge_unavailable_response(module_config, bool(recent_history), "DRAFT_REVIEW")
         retrieval_query = build_draft_review_retrieval_query(draft_review)
         retrieval = retrieve_experiment3_evidence(
             learner_question=retrieval_query,
@@ -279,6 +361,9 @@ def debug_retrieve_chat_turn(
         retrieval["detected_behavior"] = "DRAFT_REVIEW"
         retrieval["detected_task_or_topic"] = draft_review.task_reference or draft_review.topic_hint
         return retrieval
+
+    if not module_config.knowledge_available:
+        return _knowledge_unavailable_response(module_config, bool(recent_history), "KNOWLEDGE_UNAVAILABLE")
 
     contextual_question = _retrieval_question(normalized_message, recent_history)
     retrieval_query = build_response_retrieval_query(contextual_question)
@@ -295,6 +380,24 @@ def debug_retrieve_chat_turn(
     retrieval["detected_behavior"] = "NORMAL"
     retrieval["detected_task_or_topic"] = retrieval.get("evidence_policy", {}).get("task_reference")
     return retrieval
+
+
+def _knowledge_unavailable_response(
+    module_config: ChatModuleConfig,
+    conversation_context_used: bool,
+    detected_behavior: str,
+) -> dict[str, Any]:
+    return {
+        "answer": KNOWLEDGE_UNAVAILABLE_ANSWER,
+        "sources": [],
+        "conversation_context_used": conversation_context_used,
+        "module_id": module_config.module_id,
+        "level": module_config.level,
+        "module_name": module_config.module_name,
+        "no_context": True,
+        "detected_behavior": detected_behavior,
+        "detected_task_or_topic": None,
+    }
 
 
 def _sanitize_history(history: list[dict[str, str]]) -> list[dict[str, str]]:
