@@ -977,8 +977,13 @@ function renderAdminVersionWorkspace() {
   renderAdminShell(`
     <section class="panel">
       <button type="button" class="link-button" id="backModule">Back to Module</button>
-      <h3>${escapeHtml(module.name)}</h3>
-      <p class="code-label">${escapeHtml(version.level)} - Version ${escapeHtml(version.version)}</p>
+      <div class="admin-section-head">
+        <div>
+          <h3>${escapeHtml(module.name)}</h3>
+          <p class="code-label">${escapeHtml(version.level)} - Version ${escapeHtml(version.version)}</p>
+        </div>
+        ${version.status === "PUBLISHED" || version.is_active ? "" : `<button type="button" id="deleteDraftVersion" class="secondary-button">Delete Draft Version</button>`}
+      </div>
       <div class="workflow-steps">
         ${["Documents", "Prepare", "Review", "Approve", "Publish"].map((step, index) => `<div class="workflow-step ${workflowStepClass(index)}"><span>${workflowStepClass(index) === "complete" ? "✓" : index + 1}</span>${step}</div>`).join("")}
       </div>
@@ -1196,6 +1201,7 @@ function bindAdminVersionEvents() {
   adminRoot.querySelector("#prepareButton")?.addEventListener("click", prepareAdminKnowledge);
   adminRoot.querySelector("#approveVersionButton")?.addEventListener("click", approveAdminVersion);
   adminRoot.querySelector("#reopenVersionButton")?.addEventListener("click", reopenAdminVersion);
+  adminRoot.querySelector("#deleteDraftVersion")?.addEventListener("click", deleteDraftVersion);
   adminRoot.querySelector("#publishButton")?.addEventListener("click", publishAdminVersion);
   adminRoot.querySelector("#openLearnerChat")?.addEventListener("click", () => switchView("chat"));
   ["chunkStatusFilter", "chunkDocumentFilter", "chunkRoleFilter"].forEach((id) => {
@@ -1336,6 +1342,27 @@ async function approveAdminVersion() {
     });
     state.admin.message = "Version approved. It is ready for publishing.";
     await reloadAdminVersion();
+  });
+}
+
+async function deleteDraftVersion() {
+  const ok = confirm("Delete this draft version?\n\nUploaded documents, prepared knowledge, and review data for this version will be permanently removed.\n\nPublished learner knowledge will not be affected.");
+  if (!ok) return;
+  const moduleId = state.admin.selectedModule.id;
+  await adminAction(async () => {
+    const result = await adminFetch(`/api/admin/versions/${encodeURIComponent(state.admin.selectedVersion.id)}`, { method: "DELETE" });
+    state.admin.selectedVersion = null;
+    state.admin.documents = [];
+    state.admin.preparationJobs = [];
+    state.admin.publishJobs = [];
+    state.admin.chunks = [];
+    state.admin.warnings = [];
+    state.admin.reviewSummary = null;
+    state.admin.selectedChunks.clear();
+    state.admin.documentFilter = "";
+    state.admin.message = `Draft version deleted. ${result.removed_documents || 0} documents and ${result.removed_chunks || 0} knowledge items removed.`;
+    if ((result.warnings || []).length) state.admin.message += ` ${result.warnings.join(" ")}`;
+    await openAdminModule(moduleId);
   });
 }
 

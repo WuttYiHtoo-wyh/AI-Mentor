@@ -80,6 +80,10 @@ class AdminRepository(ABC):
         raise NotImplementedError
 
     @abstractmethod
+    def delete_module_version_and_artifacts(self, version_id: str) -> dict[str, int | bool]:
+        raise NotImplementedError
+
+    @abstractmethod
     def create_preparation_job(self, job: PreparationJob) -> PreparationJob:
         raise NotImplementedError
 

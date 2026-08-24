@@ -43,6 +43,7 @@ from backend.api.runtime_paths import (
     display_path,
 )
 from backend.admin.upload_service import AdminUploadService
+from backend.admin.version_delete_service import AdminVersionDeleteService
 from backend.mentor_response.chat_service import (
     answer_chat_turn,
     get_default_module,
@@ -286,6 +287,19 @@ def get_admin_module_version(version_id: str) -> dict[str, Any]:
         return {"version": to_dict(service.get_module_version(version_id))}
     except NotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+
+@app.delete("/api/admin/versions/{version_id}")
+def delete_admin_module_version(version_id: str) -> dict[str, Any]:
+    service = _admin_version_delete_service()
+    try:
+        return service.delete_version(version_id)
+    except NotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValidationError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except RepositoryError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/admin/versions/{version_id}/documents")
@@ -758,6 +772,16 @@ def _admin_review_service() -> AdminReviewService:
     repository = SQLiteAdminRepository(ADMIN_DB_PATH)
     repository.initialize()
     return AdminReviewService(repository)
+
+
+def _admin_version_delete_service() -> AdminVersionDeleteService:
+    repository = SQLiteAdminRepository(ADMIN_DB_PATH)
+    repository.initialize()
+    return AdminVersionDeleteService(
+        repository,
+        upload_root=ADMIN_UPLOAD_ROOT,
+        chroma_root=ADMIN_CHROMA_ROOT,
+    )
 
 
 def _admin_publish_service() -> AdminPublishService:

@@ -354,6 +354,45 @@ class SQLiteAdminRepository(AdminRepository):
         with self._connection() as conn:
             conn.execute("UPDATE documents SET status = ?, updated_at = ? WHERE id = ?", (status, updated_at, document_id))
 
+    def delete_module_version_and_artifacts(self, version_id: str) -> dict[str, int | bool]:
+        with self._connection() as conn:
+            version = conn.execute("SELECT id FROM module_versions WHERE id = ?", (version_id,)).fetchone()
+            if not version:
+                raise RepositoryError("Module version not found.")
+            document_ids = [row["id"] for row in conn.execute("SELECT id FROM documents WHERE module_version_id = ?", (version_id,)).fetchall()]
+            chunk_ids = [row["id"] for row in conn.execute("SELECT id FROM prepared_chunks WHERE module_version_id = ?", (version_id,)).fetchall()]
+            removed_documents = len(document_ids)
+            removed_chunks = len(chunk_ids)
+            removed_warnings = conn.execute("SELECT COUNT(*) FROM preparation_warnings WHERE module_version_id = ?", (version_id,)).fetchone()[0]
+            removed_preparation_jobs = conn.execute("SELECT COUNT(*) FROM preparation_jobs WHERE module_version_id = ?", (version_id,)).fetchone()[0]
+            removed_publish_jobs = conn.execute("SELECT COUNT(*) FROM publish_jobs WHERE module_version_id = ?", (version_id,)).fetchone()[0]
+            review_conditions = ["(entity_type = 'module_version' AND entity_id = ?)"]
+            review_params: list[object] = [version_id]
+            if document_ids:
+                review_conditions.append(f"(entity_type = 'document' AND entity_id IN ({_placeholders(document_ids)}))")
+                review_params.extend(document_ids)
+            if chunk_ids:
+                review_conditions.append(f"(entity_type = 'chunk' AND entity_id IN ({_placeholders(chunk_ids)}))")
+                review_params.extend(chunk_ids)
+            review_where = " OR ".join(review_conditions)
+            removed_review_events = conn.execute(f"SELECT COUNT(*) FROM review_events WHERE {review_where}", review_params).fetchone()[0]
+            conn.execute(f"DELETE FROM review_events WHERE {review_where}", review_params)
+            conn.execute("DELETE FROM publish_jobs WHERE module_version_id = ?", (version_id,))
+            conn.execute("DELETE FROM preparation_warnings WHERE module_version_id = ?", (version_id,))
+            conn.execute("DELETE FROM prepared_chunks WHERE module_version_id = ?", (version_id,))
+            conn.execute("DELETE FROM preparation_jobs WHERE module_version_id = ?", (version_id,))
+            conn.execute("DELETE FROM documents WHERE module_version_id = ?", (version_id,))
+            cursor = conn.execute("DELETE FROM module_versions WHERE id = ?", (version_id,))
+        return {
+            "deleted": cursor.rowcount == 1,
+            "removed_documents": int(removed_documents),
+            "removed_chunks": int(removed_chunks),
+            "removed_warnings": int(removed_warnings),
+            "removed_preparation_jobs": int(removed_preparation_jobs),
+            "removed_publish_jobs": int(removed_publish_jobs),
+            "removed_review_events": int(removed_review_events),
+        }
+
     def create_preparation_job(self, job: PreparationJob) -> PreparationJob:
         try:
             with self._connection() as conn:
@@ -1027,6 +1066,10 @@ def _publish_job_from_row(row: sqlite3.Row) -> PublishJob:
         error_message=row["error_message"],
         created_at=row["created_at"],
     )
+
+
+def _placeholders(values: list[object]) -> str:
+    return ", ".join("?" for _ in values)
 
 
 def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
