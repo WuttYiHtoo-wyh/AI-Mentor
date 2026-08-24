@@ -1081,9 +1081,7 @@ function renderPrepareSection(job) {
 
 function renderReviewSection() {
   const summary = state.admin.reviewSummary;
-  const chunks = filteredAdminChunks();
-  const defaultNeedsReview = state.admin.chunkFilter === "all" && chunks.some((chunk) => chunk.review_status === "NEEDS_REVIEW");
-  const shownChunks = defaultNeedsReview ? chunks.filter((chunk) => chunk.review_status === "NEEDS_REVIEW") : chunks;
+  const shownChunks = displayedAdminChunks();
   return `<section class="panel">
     <h3>3. Review Knowledge</h3>
     <p class="muted">Most prepared knowledge can be used automatically. Please check the items that need your attention before publishing.</p>
@@ -1106,6 +1104,7 @@ function renderReviewSection() {
         <select id="chunkRoleFilter"><option value="">All roles</option><option value="OFFICIAL_REQUIREMENT">Official Requirement</option><option value="LEARNING_MATERIAL">Learning Material</option><option value="MODULE_GUIDANCE">Module Guidance</option></select>
       </div>
       <div class="bulk-actions">
+        <label class="chunk-select"><input type="checkbox" id="selectAllDisplayedChunks" ${shownChunks.length ? "" : "disabled"}> Select All</label>
         <button type="button" id="approveSelected">Approve Selected</button>
         <button type="button" id="rejectSelected">Reject Selected</button>
         <button type="button" id="resetSelected" class="secondary-button">Move Back to Needs Review</button>
@@ -1207,6 +1206,20 @@ function bindAdminVersionEvents() {
       renderAdminVersionWorkspace();
     });
   });
+  const selectAllDisplayed = adminRoot.querySelector("#selectAllDisplayedChunks");
+  if (selectAllDisplayed) {
+    const displayedChunkIds = displayedAdminChunks().map((chunk) => chunk.id);
+    const selectedDisplayedCount = displayedChunkIds.filter((id) => state.admin.selectedChunks.has(id)).length;
+    selectAllDisplayed.checked = displayedChunkIds.length > 0 && selectedDisplayedCount === displayedChunkIds.length;
+    selectAllDisplayed.indeterminate = selectedDisplayedCount > 0 && selectedDisplayedCount < displayedChunkIds.length;
+    selectAllDisplayed.addEventListener("change", () => {
+      displayedChunkIds.forEach((id) => {
+        if (selectAllDisplayed.checked) state.admin.selectedChunks.add(id);
+        else state.admin.selectedChunks.delete(id);
+      });
+      renderAdminVersionWorkspace();
+    });
+  }
   adminRoot.querySelectorAll("[data-chunk-select]").forEach((input) => {
     input.checked = state.admin.selectedChunks.has(input.dataset.chunkSelect);
     input.addEventListener("change", () => {
@@ -1377,6 +1390,12 @@ async function adminAction(callback) {
   } finally {
     state.admin.loading = false;
   }
+}
+
+function displayedAdminChunks() {
+  const chunks = filteredAdminChunks();
+  const defaultNeedsReview = state.admin.chunkFilter === "all" && chunks.some((chunk) => chunk.review_status === "NEEDS_REVIEW");
+  return defaultNeedsReview ? chunks.filter((chunk) => chunk.review_status === "NEEDS_REVIEW") : chunks;
 }
 
 function filteredAdminChunks() {

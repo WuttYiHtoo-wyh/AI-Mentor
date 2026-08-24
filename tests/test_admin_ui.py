@@ -29,6 +29,8 @@ class AdminUiSmokeTests(unittest.TestCase):
             "Prepare Knowledge",
             "Review Knowledge",
             "Approve Knowledge Version",
+            "Select All",
+            "selectAllDisplayedChunks",
             "Publish to AI Mentor",
             "Upload supported; preparation not yet supported",
         ]:
