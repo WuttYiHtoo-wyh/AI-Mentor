@@ -23,7 +23,7 @@ const state = {
   conversationId: crypto.randomUUID(),
   loading: false,
   history: [],
-  moduleId: "PDDS-DMV",
+  moduleId: "DMV",
   level: "Basic",
   evaluationLoaded: false,
   capabilitiesLoaded: false,

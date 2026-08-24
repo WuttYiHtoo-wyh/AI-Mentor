@@ -22,6 +22,8 @@ class AdminUiSmokeTests(unittest.TestCase):
 
     def test_admin_frontend_contains_required_workflow_labels(self) -> None:
         app_js = (self.root / "frontend" / "learner_chat" / "app.js").read_text(encoding="utf-8")
+        self.assertIn('moduleId: "DMV"', app_js)
+        self.assertIn('level: "Basic"', app_js)
         for text in [
             "Create AI Mentor Module",
             "Set Up Module Knowledge",
