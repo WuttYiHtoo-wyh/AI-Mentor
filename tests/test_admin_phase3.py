@@ -112,6 +112,41 @@ class AdminPhase3Tests(unittest.TestCase):
         reopened = self.review.reopen_version(version_id=version.id, actor="lead", comment="Need another review")
         self.assertEqual(reopened.status, "NEEDS_REVIEW")
 
+    def test_failed_pdf_can_be_reprepared_and_approved(self) -> None:
+        module = self.persistence.create_module(module_code="DMV-RETRY", name="DMV Retry")
+        version = self.persistence.create_module_version(module_id=module.id, version="v1", level="Basic")
+        document = self.uploads.save_document_upload(
+            version_id=version.id,
+            original_filename="DMV-Project_Brief_Basic-v1-formatted.pdf",
+            content=_pdf_bytes(
+                "DMV Project Brief\n"
+                "Task 1: Prepare Data\n"
+                "This source contains enough words to form useful knowledge items for review. "
+                "It describes project requirements, expected preparation steps, and learner deliverables."
+            ),
+            document_type="project_brief",
+            knowledge_role="OFFICIAL_REQUIREMENT",
+        )
+        self.persistence.update_document_status(document.id, "FAILED")
+
+        job = self.preparation.prepare_version(version_id=version.id, created_by="tester")
+        prepared_document = self.persistence.get_document(document.id)
+        chunks = self.persistence.list_prepared_chunks(job.id)
+        approved_count = 0
+        for chunk in chunks:
+            if chunk.embedding_eligible:
+                self.review.set_chunk_review_status(chunk.id, review_status="APPROVED", reviewer="lecturer")
+                approved_count += 1
+            else:
+                self.review.set_chunk_review_status(chunk.id, review_status="REJECTED", reviewer="lecturer")
+
+        self.assertIn(job.status, {"COMPLETED", "COMPLETED_WITH_WARNINGS"})
+        self.assertEqual(prepared_document.status, "PREPARED")
+        self.assertGreater(len(chunks), 0)
+        self.assertGreater(approved_count, 0)
+        summary = self.review.version_review_summary(version.id)
+        self.assertTrue(summary["eligible_for_approval"], summary["approval_blockers"])
+
     def test_unsupported_uploaded_document_blocks_until_excluded(self) -> None:
         version, job = self._prepared_module("MOD-A", "Module A")
         unsupported = self.uploads.save_document_upload(

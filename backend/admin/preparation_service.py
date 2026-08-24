@@ -24,9 +24,9 @@ class AdminPreparationService:
     def prepare_version(self, *, version_id: str, created_by: str = "local-demo") -> PreparationJob:
         module_version = self.persistence.get_module_version(version_id)
         module = self.persistence.get_module(module_version.module_id)
-        documents = [doc for doc in self.persistence.list_documents_for_version(version_id) if doc.status == "UPLOADED"]
+        documents = [doc for doc in self.persistence.list_documents_for_version(version_id) if doc.status in {"UPLOADED", "FAILED"}]
         if not documents:
-            raise ValidationError("No UPLOADED document metadata records exist for this module version.")
+            raise ValidationError("No UPLOADED or retryable FAILED document metadata records exist for this module version.")
 
         now = _now()
         output_dir = self.prepared_root / _safe_segment(module.module_code) / _safe_segment(module_version.id)
