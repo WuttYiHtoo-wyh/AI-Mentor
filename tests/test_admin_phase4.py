@@ -6,6 +6,7 @@ from pathlib import Path
 
 import chromadb
 import fitz
+import yaml
 
 from backend.mentor_response.chat_service import load_chat_module_config
 from backend.admin.preparation_service import AdminPreparationService
@@ -14,6 +15,7 @@ from backend.admin.review_service import AdminReviewService
 from backend.admin.service import AdminPersistenceService, ValidationError
 from backend.admin.sqlite_repository import SQLiteAdminRepository
 from backend.admin.upload_service import AdminUploadService
+from backend.retrieval_experiment.config import load_retrieval_config
 from backend.retrieval_experiment.retriever import retrieve_with_embedding
 
 
@@ -61,6 +63,41 @@ class AdminPhase4Tests(unittest.TestCase):
         self.assertTrue(all(meta["review_status"] == "APPROVED" for meta in rows["metadatas"]))
         self.assertTrue(all(meta["module_version"] == version.id for meta in rows["metadatas"]))
 
+
+    def test_local_workspace_publish_config_uses_relative_paths(self) -> None:
+        version = self._prepare_reviewed_version("LOCAL", "Local Publish")
+        job = self.publish.publish_version(version_id=version.id, requested_by="lecturer")
+        self.assertEqual(job.status, "COMPLETED")
+        active = self.repository.get_active_module_version("LOCAL", "Basic")
+        raw = yaml.safe_load(Path(active.retrieval_config_path).read_text(encoding="utf-8"))
+        self.assertFalse(Path(raw["prepared_chunks_path"]).is_absolute())
+        self.assertFalse(Path(raw["chroma_path"]).is_absolute())
+        loaded = load_retrieval_config(Path(active.retrieval_config_path), self.workspace)
+        self.assertTrue(loaded.prepared_chunks_path.exists())
+        self.assertEqual(loaded.chroma_path, self.workspace / raw["chroma_path"])
+
+    def test_publish_accepts_prepared_chunks_outside_workspace_root(self) -> None:
+        external = self._external_publish_context()
+        version = external["prepare_version"]("RAILWAY-DMV", "Railway DMV")
+
+        job = external["publish"].publish_version(version_id=version.id, requested_by="lecturer")
+
+        self.assertEqual(job.status, "COMPLETED")
+        active = external["repository"].get_active_module_version("RAILWAY-DMV", "Basic")
+        self.assertIsNotNone(active)
+        self.assertEqual(active.id, version.id)
+        raw = yaml.safe_load(Path(active.retrieval_config_path).read_text(encoding="utf-8"))
+        self.assertTrue(Path(raw["prepared_chunks_path"]).is_absolute())
+        self.assertTrue(Path(raw["chroma_path"]).is_absolute())
+        self.assertTrue(str(raw["prepared_chunks_path"]).startswith(str(external["data_root"])))
+        self.assertTrue(str(raw["chroma_path"]).startswith(str(external["data_root"])))
+        loaded = load_retrieval_config(Path(active.retrieval_config_path), external["workspace_root"])
+        self.assertTrue(loaded.prepared_chunks_path.exists())
+        self.assertEqual(loaded.chroma_path, external["data_root"] / "admin_chroma")
+        collection = chromadb.PersistentClient(path=str(external["data_root"] / "admin_chroma")).get_collection(job.collection_name)
+        rows = collection.get(where={"module_version": version.id}, include=["metadatas"])
+        self.assertEqual(len(rows["ids"]), job.embedded_chunk_count)
+
     def test_failed_publish_does_not_replace_previous_active_version(self) -> None:
         v1 = self._prepare_reviewed_version("PROG", "Programming Fundamentals", version_label="v1")
         first = self.publish.publish_version(version_id=v1.id, requested_by="lecturer")
@@ -70,6 +107,21 @@ class AdminPhase4Tests(unittest.TestCase):
         failed_job = failing.publish_version(version_id=v2.id, requested_by="lecturer")
         self.assertEqual(failed_job.status, "FAILED")
         active = self.repository.get_active_module_version("PROG", "Basic")
+        self.assertEqual(active.id, v1.id)
+        self.assertNotEqual(active.id, v2.id)
+
+
+    def test_external_publish_failure_does_not_replace_previous_active_version(self) -> None:
+        external = self._external_publish_context()
+        v1 = external["prepare_version"]("RAILWAY-FAIL", "Railway Failure", version_label="v1")
+        first = external["publish"].publish_version(version_id=v1.id, requested_by="lecturer")
+        self.assertEqual(first.status, "COMPLETED")
+        v2 = external["prepare_version"]("RAILWAY-FAIL", "Railway Failure", version_label="v2")
+
+        failed_job = external["failing_publish"].publish_version(version_id=v2.id, requested_by="lecturer")
+
+        self.assertEqual(failed_job.status, "FAILED")
+        active = external["repository"].get_active_module_version("RAILWAY-FAIL", "Basic")
         self.assertEqual(active.id, v1.id)
         self.assertNotEqual(active.id, v2.id)
 
@@ -145,6 +197,54 @@ class AdminPhase4Tests(unittest.TestCase):
         if approve_version:
             self.review.approve_version(version_id=version.id, approved_by="lead")
         return version
+
+    def _external_publish_context(self):
+        root = Path(self.tmp.name)
+        workspace_root = root / "app"
+        data_root = root / "data"
+        workspace_root.mkdir(parents=True, exist_ok=True)
+        data_root.mkdir(parents=True, exist_ok=True)
+        repository = SQLiteAdminRepository(data_root / "ai_mentor.db")
+        repository.initialize()
+        persistence = AdminPersistenceService(repository)
+        uploads = AdminUploadService(repository, data_root / "uploads")
+        preparation = AdminPreparationService(repository, workspace_root=workspace_root, prepared_root=data_root / "prepared")
+        review = AdminReviewService(repository)
+
+        def publish_service(fail: bool = False) -> AdminPublishService:
+            return AdminPublishService(
+                repository,
+                workspace_root=workspace_root,
+                chroma_root=data_root / "admin_chroma",
+                config_root=data_root / "published_configs",
+                embedder_factory=lambda model: FakeEmbedder(model, fail=fail),
+            )
+
+        def prepare_version(code: str, name: str, version_label: str = "v1"):
+            module = repository.get_module_by_code(code) or persistence.create_module(module_code=code, name=name)
+            version = persistence.create_module_version(module_id=module.id, version=version_label, level="Basic")
+            uploads.save_document_upload(
+                version_id=version.id,
+                original_filename=f"{code}-{version_label}.pdf",
+                content=_pdf_bytes(f"{name} {version_label}\nThis external Railway-style source explains a complete concept for {code}. It has enough words to become a useful approved chunk outside the app workspace."),
+                document_type="instructional_unit",
+                knowledge_role="LEARNING_MATERIAL",
+                instructional_unit="IU1",
+            )
+            prep = preparation.prepare_version(version_id=version.id, created_by="tester")
+            for chunk in persistence.list_prepared_chunks(prep.id):
+                review.set_chunk_review_status(chunk.id, review_status="APPROVED", reviewer="lecturer")
+            review.approve_version(version_id=version.id, approved_by="lead")
+            return version
+
+        return {
+            "workspace_root": workspace_root,
+            "data_root": data_root,
+            "repository": repository,
+            "publish": publish_service(),
+            "failing_publish": publish_service(fail=True),
+            "prepare_version": prepare_version,
+        }
 
 
 def _pdf_bytes(text: str) -> bytes:

@@ -194,8 +194,8 @@ class AdminPublishService:
             template = yaml.safe_load(template_path.read_text(encoding="utf-8"))
         else:
             template = _default_retrieval_config()
-        template["prepared_chunks_path"] = str(prepared_chunks_path.resolve().relative_to(self.workspace_root.resolve()))
-        template["chroma_path"] = str(self.chroma_root.resolve().relative_to(self.workspace_root.resolve()))
+        template["prepared_chunks_path"] = _config_path_value(prepared_chunks_path, self.workspace_root)
+        template["chroma_path"] = _config_path_value(self.chroma_root, self.workspace_root)
         template["collection_name"] = collection_name
         template["embedding_model"] = self.embedding_model
         template["module_id"] = module_code
@@ -218,6 +218,16 @@ class AdminPublishService:
                 created_at=_now(),
             )
         )
+
+
+def _config_path_value(path: Path, workspace_root: Path) -> str:
+    resolved_path = path.resolve()
+    resolved_workspace = workspace_root.resolve()
+    try:
+        return str(resolved_path.relative_to(resolved_workspace))
+    except ValueError:
+        return str(resolved_path)
+
 
 
 def collection_name_for(module_code: str, level: str, version: str, version_id: str) -> str:
